@@ -13,6 +13,9 @@ var enemy = SKSpriteNode?()
 var projectile = SKSpriteNode?()
 
 var star = SKSpriteNode?()
+var lblMain = SKLabelNode?()
+var lblScore = SKLabelNode?()
+
 
 var playerSize      = CGSize(width: 50.0, height: 50.0)
 var enemySize       = CGSize(width: 40.0, height: 40.0)
@@ -53,14 +56,17 @@ class GameScene: SKScene, SKPhysicsContactDelegate
         timerProjectileSpawn()
     }
     
+//MARK:- Touches
+    
     override func touchesMoved(touches: Set<UITouch>, withEvent event: UIEvent?)
     {
         for touch in touches
         {
             touchLocation = touch.locationInNode(self)
-            player?.position.y = (touchLocation?.y)!
             
-            
+            if isAlive{
+                player?.position.y = (touchLocation?.y)!
+            }
         }
     }
     
@@ -75,6 +81,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate
             
         }
     }
+
+//MARK: - Spawning
     
     func spawnEnemy()
     {
@@ -95,27 +103,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate
         moveEnemyForward()
         self.addChild(enemy!)
     }
-   
-    func moveEnemyForward()
-    {
-        let moveFoward = SKAction.moveToX(-100, duration: enemySpeed)
-        let destroy = SKAction.removeFromParent()
-        enemy?.runAction(SKAction.sequence([moveFoward, destroy]))
-        
-    }
-    
-    func timerEnemySpawn()
-    {
-        let wait = SKAction.waitForDuration(enemySpawnRate)
-        let spawn = SKAction.runBlock{
-            self.spawnEnemy()
-            
-        }
-        
-        let sequence = SKAction.sequence([wait, spawn])
-        self.runAction(SKAction.repeatActionForever(sequence))
-    }
-    
     func spawnPlayer()
     {
         player  = SKSpriteNode(color: offWhiteColor, size: playerSize)
@@ -138,7 +125,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate
         let randomWidth     = Int(arc4random_uniform(3)+1)
         let randomHeight    = Int(arc4random_uniform(3)+1)
         var randomY         = Int(arc4random_uniform(500) + 125)
-       
+        
         starSize = CGSize(width: randomWidth, height: randomHeight)
         
         star  = SKSpriteNode(color: offWhiteColor, size: starSize!)
@@ -149,16 +136,69 @@ class GameScene: SKScene, SKPhysicsContactDelegate
         self.addChild(star!)
     }
     
+    func spawnProjectile()
+    {
+        projectile  = SKSpriteNode(color: offWhiteColor, size: projectileSize)
+        projectile?.position.y = (player?.position.y)!
+        projectile?.position.x = (player?.position.x)! + 50
+        projectile?.name = "projectileName"
+        
+        projectile?.physicsBody = SKPhysicsBody(rectangleOfSize: (projectile?.size)!)
+        projectile?.physicsBody?.affectedByGravity = false
+        projectile?.physicsBody?.allowsRotation = false
+        projectile?.physicsBody?.categoryBitMask = physicsCategory.projectile
+        projectile?.physicsBody?.contactTestBitMask = physicsCategory.enemy
+        projectile?.physicsBody?.dynamic = true
+        
+        moveProjectileFoward()
+        self.addChild(projectile!)
+    }
+    
+    //MARK: - Moving Nodes
+    
+    func moveEnemyForward()
+    {
+        let moveFoward = SKAction.moveToX(-100, duration: enemySpeed)
+        let destroy = SKAction.removeFromParent()
+        enemy?.runAction(SKAction.sequence([moveFoward, destroy]))
+        
+    }
+    
     func starMoveForward()
     {
         
         let randomSpeed     = Int(arc4random_uniform(3)+1)
-       
+        
         let moveFoward = SKAction.moveToX(-100, duration: Double(randomSpeed))
         let destroy = SKAction.removeFromParent()
         star?.runAction(SKAction.sequence([moveFoward, destroy]))
         
     }
+    func moveProjectileFoward()
+    {
+        let moveFoward = SKAction.moveToX(1200, duration: projectileSpeed)
+        let destroy = SKAction.removeFromParent()
+        projectile?.runAction(SKAction.sequence([moveFoward, destroy]))
+        
+    }
+    
+    
+    //MARK: - Timing Nodes
+    
+    func timerEnemySpawn()
+    {
+        let wait = SKAction.waitForDuration(enemySpawnRate)
+        let spawn = SKAction.runBlock{
+            self.spawnEnemy()
+            
+        }
+        
+        let sequence = SKAction.sequence([wait, spawn])
+        self.runAction(SKAction.repeatActionForever(sequence))
+    }
+    
+
+    
     func timerStarSpawn()
     {
         let wait = SKAction.waitForDuration(0.1)
@@ -171,49 +211,22 @@ class GameScene: SKScene, SKPhysicsContactDelegate
     }
     
     
-    func spawnProjectile()
-    {
-        projectile  = SKSpriteNode(color: offWhiteColor, size: projectileSize)
-        projectile?.position.y = (player?.position.y)!
-        projectile?.position.x = (player?.position.x)! + 50
-        projectile?.name = "projectileName"
-
-        projectile?.physicsBody = SKPhysicsBody(rectangleOfSize: (projectile?.size)!)
-        projectile?.physicsBody?.affectedByGravity = false
-        projectile?.physicsBody?.allowsRotation = false
-        projectile?.physicsBody?.categoryBitMask = physicsCategory.projectile
-        projectile?.physicsBody?.contactTestBitMask = physicsCategory.enemy
-        projectile?.physicsBody?.dynamic = true
-
-        moveProjectileFoward()
-        self.addChild(projectile!)
-    }
     
     
-    func moveProjectileFoward()
-    {
-        let moveFoward = SKAction.moveToX(1200, duration: projectileSpeed)
-        let destroy = SKAction.removeFromParent()
-        projectile?.runAction(SKAction.sequence([moveFoward, destroy]))
-        
-    }
     func timerProjectileSpawn()
     {
         let wait = SKAction.waitForDuration(projectileSpawnRate)
         let spawn = SKAction.runBlock{
-            self.spawnProjectile()
+            if isAlive == true {
+                self.spawnProjectile()
+            }
         }
         
         let sequence = SKAction.sequence([wait, spawn])
         self.runAction(SKAction.repeatActionForever(sequence))
     }
     
-    func keepPlayerOnScreen()
-    {
-        if player?.position.y >= 640 {player?.position.y = 640}
-        if player?.position.y <= 125 {player?.position.y = 125}
-        player?.position.x = CGRectGetMinX(self.frame) + 100
-    }
+    //MARK: - Collision Methods on Nodes
     
     func didBeginContact(contact: SKPhysicsContact)
     {
@@ -271,12 +284,28 @@ class GameScene: SKScene, SKPhysicsContactDelegate
 
     }
     
+    //MARK: - Game Methods 
+    
+    
+    func keepPlayerOnScreen()
+    {
+        if player?.position.y >= 640 {player?.position.y = 640}
+        if player?.position.y <= 125 {player?.position.y = 125}
+        player?.position.x = CGRectGetMinX(self.frame) + 100
+    }
+    
     func updateScore(){
         
     }
     
     func gameoverLogic(){
         
+    }
+    
+    func movePlayerOffScreen(){
+        if !isAlive{
+            player?.position.y = -300
+        }
     }
     
     override func update(currentTime: CFTimeInterval)
