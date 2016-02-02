@@ -22,8 +22,8 @@ var enemySize       = CGSize(width: 40.0, height: 40.0)
 var projectileSize  = CGSize(width: 10.0, height: 10.0)
 var starSize        = CGSize?()
 
-var offBlackColor = UIColor(red: 0.2, green: 0.2, blue: 0.2, alpha: 1.0)
-var offWhiteColor = UIColor(red: 0.95, green: 0.95, blue: 0.95, alpha: 1.0)
+var offBlackColor = UIColor(red: 20/255, green: 30/255, blue: 20/255, alpha: 1.0)
+var offWhiteColor = UIColor(red: 140/255, green: 170/255, blue: 125/255, alpha: 1.0)
 
 var touchLocation = CGPoint?()
 
@@ -50,11 +50,29 @@ class GameScene: SKScene, SKPhysicsContactDelegate
         self.backgroundColor = offBlackColor
         physicsWorld.contactDelegate = self
         
+        resetVariablesOnStart()
+        
         spawnPlayer()
         timerEnemySpawn()
         timerStarSpawn()
         timerProjectileSpawn()
+        
+        spawnLblMain()
+        spawnLblScore()
+        
+        timerSetLblAlpha()
     }
+    
+    func resetVariablesOnStart()
+    {
+        isAlive = true
+        score = 0
+        lblScore?.alpha = 1.0
+        lblScore?.text = "Score: \(score)"
+        lblMain?.alpha = 1.0
+        lblMain?.text = "Start"
+    }
+    
     
 //MARK:- Touches
     
@@ -154,6 +172,30 @@ class GameScene: SKScene, SKPhysicsContactDelegate
         self.addChild(projectile!)
     }
     
+    
+    func spawnLblMain()
+    {
+        lblMain = SKLabelNode(fontNamed: "Futura")
+        lblMain?.fontSize = 150
+        lblMain?.fontColor = offWhiteColor
+        lblMain?.position = CGPoint(x: CGRectGetMidX(self.frame), y: CGRectGetMidY(self.frame) + 50 )
+        lblMain?.text = "Start!"
+        
+        self.addChild(lblMain!)
+    }
+
+    func spawnLblScore()
+    {
+        lblScore = SKLabelNode(fontNamed: "Futura")
+        lblScore?.fontSize = 40
+        lblScore?.fontColor = offWhiteColor
+        lblScore?.position = CGPoint(x: CGRectGetMidX(self.frame), y: CGRectGetMinY(self.frame) + 110 )
+        lblScore?.text = "Score: \(score)"
+        
+        
+        self.addChild(lblScore!)
+    }
+   
     //MARK: - Moving Nodes
     
     func moveEnemyForward()
@@ -189,8 +231,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate
     {
         let wait = SKAction.waitForDuration(enemySpawnRate)
         let spawn = SKAction.runBlock{
-            self.spawnEnemy()
-            
+            if isAlive{
+                self.spawnEnemy()
+            }
         }
         
         let sequence = SKAction.sequence([wait, spawn])
@@ -203,7 +246,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate
     {
         let wait = SKAction.waitForDuration(0.1)
         let spawn = SKAction.runBlock{
-            self.spawnStar()
+            // if we wanted to remove all the stars when game over, we have stop spawning them
+            if isAlive{
+                self.spawnStar()
+            }
+            //self.spawnStar()
         }
         
         let sequence = SKAction.sequence([wait, spawn])
@@ -294,19 +341,55 @@ class GameScene: SKScene, SKPhysicsContactDelegate
         player?.position.x = CGRectGetMinX(self.frame) + 100
     }
     
-    func updateScore(){
-        
+    func updateScore()
+    {
+        lblScore!.text = "Score: \(score)"
     }
     
-    func gameoverLogic(){
-        
+    func resetTheGame()
+    {
+        let wait = SKAction.waitForDuration(1.0)
+        let theGameScene = GameScene(size: self.size)
+        theGameScene.scaleMode = SKSceneScaleMode.AspectFill
+        let theTransition = SKTransition.crossFadeWithDuration(0.4)
+        let changeScene = SKAction.runBlock{
+            self.scene?.view?.presentScene(theGameScene, transition: theTransition)
+        }
+        let sequence = SKAction.sequence([wait, changeScene])
+        self.runAction(SKAction.repeatAction(sequence, count: 1))
     }
     
-    func movePlayerOffScreen(){
+    func gameoverLogic()
+    {
+        lblMain?.text = "Game Over"
+        lblMain?.alpha = 1.0
+        lblScore?.alpha = 1.0
+        
+    // if we wanted to remove all the stars when game over, we have stop spawning them and clear out whats there on the screen
+        
+        self.enumerateChildNodesWithName("starName", usingBlock: {node, stop in if let sprite = node as? SKSpriteNode{sprite.removeFromParent()} })
+        resetTheGame()
+    }
+    
+    func movePlayerOffScreen()
+    {
         if !isAlive{
             player?.position.y = -300
         }
     }
+    
+    func timerSetLblAlpha()
+    {
+        let wait = SKAction.waitForDuration(3.0)
+        let changeAlpha = SKAction.runBlock{
+            lblMain?.alpha = 0.0
+            lblScore?.alpha = 0.3
+        }
+        
+        let sequence = SKAction.sequence([wait, changeAlpha])
+        self.runAction(SKAction.repeatAction(sequence, count: 1))
+    }
+    
     
     override func update(currentTime: CFTimeInterval)
     {
