@@ -104,7 +104,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate
     
     func spawnEnemy()
     {
-        var randomY = Int(arc4random_uniform(500) + 140)
+        let randomY = Int(arc4random_uniform(500) + 140)
         
         
         enemy  = SKSpriteNode(color: offWhiteColor, size: enemySize)
@@ -142,7 +142,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate
     {
         let randomWidth     = Int(arc4random_uniform(3)+1)
         let randomHeight    = Int(arc4random_uniform(3)+1)
-        var randomY         = Int(arc4random_uniform(500) + 125)
+        let randomY         = Int(arc4random_uniform(500) + 125)
         
         starSize = CGSize(width: randomWidth, height: randomHeight)
         
